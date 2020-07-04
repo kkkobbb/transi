@@ -19,7 +19,7 @@ while read LINE || [ -n "$LINE" ]; do
 	# MARK_START_TRANSを含む場合、この行のみすぐに翻訳を実行する
 	l=$(echo $LINE | sed -n "s/$MARK_START_TRANS//p")
 	if [ -n "$l" ]; then
-		trans -b en:ja "$l"
+		trans -no-warn -b en:ja "$l"
 		printf "$PROMPT_INPUT"
 		continue
 	fi
@@ -40,7 +40,7 @@ while read LINE || [ -n "$LINE" ]; do
 	echo $text | fmt
 
 	printf "$PROMPT_TRANS"
-	trans -b en:ja "$text"
+	trans -no-warn -b en:ja "$text"
 
 	printf "$PROMPT_INPUT"
 	text=""
