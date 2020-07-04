@@ -10,10 +10,20 @@ PROMPT_INPUT="\n\e[36;1m# input text:\e[0m\n"
 PROMPT_SRC="\e[32m# src text:\e[0m\n"
 PROMPT_TRANS="\e[35m# translate:\e[0m\n"
 
+MARK_START_TRANS=";;$"
+
 
 printf "$PROMPT_INPUT"
 text=""
 while read LINE || [ -n "$LINE" ]; do
+	# MARK_START_TRANSを含む場合、この行のみすぐに翻訳を実行する
+	l=$(echo $LINE | sed -n "s/$MARK_START_TRANS//p")
+	if [ -n "$l" ]; then
+		trans -b en:ja "$l"
+		printf "$PROMPT_INPUT"
+		continue
+	fi
+
 	# 文字列がある場合、バッファに保存する
 	if [ -n "$LINE" ]; then
 		# 改行なしで結合
