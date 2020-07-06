@@ -7,7 +7,7 @@
 #   sudo apt install translate-shell
 
 PROMPT_INPUT="\n\e[36;1m# input text:\e[0m\n"
-PROMPT_SRC="\e[32m# src text:\e[0m\n"
+PROMPT_SRC="\n\e[32m# src text:\e[0m\n"
 PROMPT_TRANS="\e[35m# translate:\e[0m\n"
 
 MARK_START_TRANS=";;$"
@@ -16,30 +16,39 @@ MARK_START_TRANS=";;$"
 printf "$PROMPT_INPUT"
 text=""
 while read LINE || [ -n "$LINE" ]; do
-	# MARK_START_TRANSを含む場合、この行のみすぐに翻訳を実行する
+	continue_text=true
+	add_detail=true
+
+	# MARK_START_TRANSを含む場合、翻訳を実行する
 	l=$(echo $LINE | sed -n "s/$MARK_START_TRANS//p")
 	if [ -n "$l" ]; then
-		trans -no-warn -b en:ja "$l"
-		printf "$PROMPT_INPUT"
-		continue
+		LINE=$l
+		continue_text=false
+		add_detail=false
 	fi
 
-	# 文字列がある場合、バッファに保存する
 	if [ -n "$LINE" ]; then
+		# 文字列がある場合、バッファに保存する
 		# 改行なしで結合
 		text="$text $LINE"
-		continue
+	else
+		# 改行のみの行があると翻訳を開始する
+		continue_text=false
 	fi
 
-	# 改行のみの行があると翻訳を開始する
+	# 文章に続きがあると判断した場合、まだ翻訳しない
+	if $continue_text; then
+		continue
+	fi
+	# 翻訳する文字列がない場合、翻訳しない
 	if [ -z "$text" ]; then
 		continue
 	fi
 
-	printf "$PROMPT_SRC"
-	echo $text | fmt
+	$add_detail && printf "$PROMPT_SRC"
+	$add_detail && echo $text | fmt
 
-	printf "$PROMPT_TRANS"
+	$add_detail && printf "$PROMPT_TRANS"
 	trans -no-warn -b en:ja "$text"
 
 	printf "$PROMPT_INPUT"
