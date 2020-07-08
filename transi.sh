@@ -11,8 +11,12 @@
 #     翻訳前に入力した英文の改行は削除し、複数の空白は1つにする
 #   簡易実行
 #     行の最後に";;"があるとそれまでの入力を翻訳して結果を表示する
+#   キャッシュ
+#     実行した場所にtransi_cacheディレクトリがあればキャッシュが動作する
 #   終了
 #     Ctrl+c or Ctrl+d
+
+CACHE_DIR=./transi_cache
 
 PROMPT_INPUT="\n\e[36;1m# input text:\e[0m\n"
 PROMPT_SRC="\n\e[32m# src text:\e[0m\n"
@@ -25,6 +29,69 @@ REGEX_START_TRANS=";;$"
 translate_en_ja() {
 	text="$1"
 	trans -no-warn -b en:ja "$text"
+}
+
+get_hash() {
+	key="$1"
+	printf "$key" | sha256sum | awk '{print $1}'
+}
+
+# キャッシュを保存する
+# 失敗した場合、非0を返す
+save_cache() {
+	key="$1"
+	value="$2"
+
+	if [ ! -d $CACHE_DIR ]; then
+		return 1
+	fi
+
+	texthash=$(get_hash "$key")
+	cachefile="$CACHE_DIR/$texthash.txt"
+	echo "$key" >> $cachefile
+	echo "$value" >> $cachefile
+}
+
+# キャッシュがあればその内容を出力し、0を返す
+# ない場合、空文字列を出力し非0を返す
+load_cache() {
+	key="$1"
+
+	if [ ! -d $CACHE_DIR ]; then
+		echo ""
+		return 1
+	fi
+
+	textcachefile=$(get_hash "$key").txt
+	cachelist=$(ls $CACHE_DIR)
+	for cachefile in $cachelist; do
+		if [ "$textcachefile" != "$cachefile" ]; then
+			continue
+		fi
+		cfpath="$CACHE_DIR/$cachefile"
+
+		same_text=false
+		skip_f=false
+		while read LINE || [ -n "$LINE" ]; do
+			if $skip_f; then
+				skip_f=false
+				continue
+			fi
+			if $same_text; then
+				printf "$LINE"
+				return 0
+			fi
+			if [ "$LINE" = "$key" ]; then
+				same_text=true
+				skip_f=false
+			else
+				skip_f=true
+			fi
+		done < $cfpath
+	done
+
+	echo ""
+	return 1
 }
 
 printf "$PROMPT_INPUT"
@@ -44,7 +111,7 @@ while read LINE || [ -n "$LINE" ]; do
 	if [ -n "$LINE" ]; then
 		# 文字列がある場合、バッファに保存する
 		# 改行なしで結合
-		text="$text $LINE"
+		text=$(echo "$text $LINE" | sed -e "s/^ *//" -e "s/ *$//")
 	else
 		# 改行のみの行があると翻訳を開始する
 		continue_text=false
@@ -63,7 +130,17 @@ while read LINE || [ -n "$LINE" ]; do
 	$detail_flag && echo $text | fmt
 
 	$detail_flag && printf "$PROMPT_TRANS"
-	translate_en_ja "$text"
+	cache_mark=""
+	cache_data=$(load_cache "$text")
+	if [ $? -ne 0 ]; then
+		result=$(translate_en_ja "$text")
+		save_cache "$text" "$result"
+	else
+		result="$cache_data"
+		cache_mark="(cache) "
+	fi
+
+	echo "${cache_mark}$result"
 
 	printf "$PROMPT_INPUT"
 	text=""
