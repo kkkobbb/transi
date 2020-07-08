@@ -62,14 +62,9 @@ load_cache() {
 		return 1
 	fi
 
-	textcachefile=$(get_hash "$key").txt
-	cachelist=$(ls $CACHE_DIR)
-	for cachefile in $cachelist; do
-		if [ "$textcachefile" != "$cachefile" ]; then
-			continue
-		fi
-		cfpath="$CACHE_DIR/$cachefile"
-
+	texthash=$(get_hash "$key")
+	cachefile="$CACHE_DIR/${texthash}.txt"
+	if [ -f "$cachefile" ]; then
 		same_text=false
 		skip_f=false
 		while read LINE || [ -n "$LINE" ]; do
@@ -87,8 +82,8 @@ load_cache() {
 			else
 				skip_f=true
 			fi
-		done < $cfpath
-	done
+		done < $cachefile
+	fi
 
 	echo ""
 	return 1
