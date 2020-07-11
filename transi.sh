@@ -123,19 +123,24 @@ while read LINE || [ -n "$LINE" ]; do
 
 	$detail_flag && printf "$PROMPT_SRC"
 	$detail_flag && echo $text | fmt
-
 	$detail_flag && printf "$PROMPT_TRANS"
-	cache_mark=""
+
 	cache_data=$(load_cache "$text")
 	if [ $? -ne 0 ]; then
 		result=$(translate_en_ja "$text")
-		save_cache "$text" "$result"
+		cache_mark=""
 	else
 		result="$cache_data"
-		cache_mark="(cache) "
+		hash_head=$(get_hash "$text" | cut -c 1-2)
+		cache_mark="(cache $hash_head) "
 	fi
 
 	echo "${cache_mark}$result"
+
+	# 翻訳結果がテキストと同じ場合は翻訳失敗とみなしてキャッシュしない
+	if [ -z "$cache_data" -a "$text" != "$result" ]; then
+		save_cache "$text" "$result"
+	fi
 
 	printf "$PROMPT_INPUT"
 	text=""
