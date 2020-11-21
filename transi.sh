@@ -5,10 +5,12 @@
 #   sudo apt install translate-shell
 #
 # Usage:
+#   ./transi.sh
+#
 #   基本
 #     実行すると"# input text:"とでるので英文(空行なしの複数行)を入力し、
-#     改行のみの行を入力すると日本語に翻訳した結果を表示する
-#     翻訳前に入力した英文の改行は削除し、複数の空白は1つにする
+#     空行(改行のみの行)を入力すると日本語に翻訳した結果を表示する
+#     翻訳前の英文の改行は空白に置換し、複数の空白は1つにする
 #   簡易実行
 #     行の最後に";;"があるとそれまでの入力を翻訳して結果を表示する
 #   キャッシュ
@@ -42,6 +44,7 @@ save_cache() {
 	key="$1"
 	value="$2"
 
+	# キャッシュ用ディレクトリがない場合、何もしない
 	if [ ! -d $CACHE_DIR ]; then
 		return 1
 	fi
@@ -57,6 +60,7 @@ save_cache() {
 load_cache() {
 	key="$1"
 
+	# キャッシュ用ディレクトリがない場合、何もしない
 	if [ ! -d $CACHE_DIR ]; then
 		echo ""
 		return 1
@@ -92,7 +96,9 @@ load_cache() {
 printf "$PROMPT_INPUT"
 text=""
 while read LINE || [ -n "$LINE" ]; do
+	# 次のループの文字列も使用する場合、真
 	continue_text=true
+	# 結果表示時に翻訳元も表示する場合、真
 	detail_flag=true
 
 	# REGEX_START_TRANSにマッチする場合、翻訳を実行する
@@ -103,16 +109,15 @@ while read LINE || [ -n "$LINE" ]; do
 		detail_flag=false
 	fi
 
+	# 文字列がある場合、バッファに保存する
+	# 空行の場合、翻訳を開始する
 	if [ -n "$LINE" ]; then
-		# 文字列がある場合、バッファに保存する
 		# 改行なしで結合
 		text=$(echo "$text $LINE" | sed -e "s/^ *//" -e "s/ *$//")
 	else
-		# 改行のみの行があると翻訳を開始する
 		continue_text=false
 	fi
 
-	# 文章に続きがあると判断した場合、まだ翻訳しない
 	if $continue_text; then
 		continue
 	fi
@@ -121,10 +126,12 @@ while read LINE || [ -n "$LINE" ]; do
 		continue
 	fi
 
+	# 翻訳元表示
 	$detail_flag && printf "$PROMPT_SRC\n"
 	$detail_flag && echo $text | fmt
 	$detail_flag && printf "$PROMPT_TRANS"
 
+	# 翻訳結果表示
 	cache_data=$(load_cache "$text")
 	if [ $? -ne 0 ]; then
 		result=$(translate_en_ja "$text")
@@ -134,10 +141,9 @@ while read LINE || [ -n "$LINE" ]; do
 		hash_head=$(get_hash "$text" | cut -c 1-2)
 		cache_mark=" (cache $hash_head)\n"
 	fi
-
 	printf "${cache_mark}$result\n"
 
-	# 翻訳結果がテキストと同じ場合は翻訳失敗とみなしてキャッシュしない
+	# 翻訳結果がテキストと同じ場合、翻訳失敗とみなしてキャッシュしない
 	if [ -z "$cache_data" -a "$text" != "$result" ]; then
 		save_cache "$text" "$result"
 	fi
