@@ -27,7 +27,7 @@ PROMPT_TRANS="\e[35m# translate:\e[0m"
 REGEX_START_TRANS=";;$"
 
 
-# 引数の日本語を英語に翻訳して標準出力に出力する
+# 引数の英語を日本語に翻訳して標準出力に出力する
 translate_en_ja() {
 	text="$1"
 	trans -no-warn -b en:ja "$text"
@@ -128,7 +128,7 @@ while read LINE || [ -n "$LINE" ]; do
 
 	# 翻訳元表示
 	$detail_flag && printf "$PROMPT_SRC\n"
-	$detail_flag && echo $text | fmt
+	$detail_flag && echo $text | fmt -w $(tput cols)
 	$detail_flag && printf "$PROMPT_TRANS"
 
 	# 翻訳結果表示
