@@ -19,8 +19,8 @@
 CACHE_DIR=./transi_cache
 
 PROMPT_INPUT="\n\e[36;1m# input text:\e[0m\n"
-PROMPT_SRC="\n\e[32m# src text:\e[0m\n"
-PROMPT_TRANS="\e[35m# translate:\e[0m\n"
+PROMPT_SRC="\n\e[32m# src text:\e[0m"
+PROMPT_TRANS="\e[35m# translate:\e[0m"
 
 REGEX_START_TRANS=";;$"
 
@@ -121,21 +121,21 @@ while read LINE || [ -n "$LINE" ]; do
 		continue
 	fi
 
-	$detail_flag && printf "$PROMPT_SRC"
+	$detail_flag && printf "$PROMPT_SRC\n"
 	$detail_flag && echo $text | fmt
 	$detail_flag && printf "$PROMPT_TRANS"
 
 	cache_data=$(load_cache "$text")
 	if [ $? -ne 0 ]; then
 		result=$(translate_en_ja "$text")
-		cache_mark=""
+		cache_mark="\n"
 	else
 		result="$cache_data"
 		hash_head=$(get_hash "$text" | cut -c 1-2)
-		cache_mark="(cache $hash_head) "
+		cache_mark=" (cache $hash_head)\n"
 	fi
 
-	echo "${cache_mark}$result"
+	printf "${cache_mark}$result\n"
 
 	# 翻訳結果がテキストと同じ場合は翻訳失敗とみなしてキャッシュしない
 	if [ -z "$cache_data" -a "$text" != "$result" ]; then
