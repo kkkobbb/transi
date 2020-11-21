@@ -1,0 +1,18 @@
+# 翻訳用ペイン追加版tmux
+# tmuxで文字列をコピーした時にpane2で翻訳を実行する
+# `tmux new \; source-file ./tmux_transi`
+
+rename-session transi
+
+# pane2でtransi.shを実行
+split-window -v
+send-keys 'cd ~/work/transi/' C-m
+send-keys C-l
+send-keys './transi.sh' C-m
+
+# pane1にフォーカスを戻す & サイズ調整
+select-pane -t 1
+resize-pane -y25
+
+# コピー時のフック設定
+set-hook pane-set-clipboard 'select-pane -t2 ; paste-buffer ; send-keys C-m C-m ; last-pane'
