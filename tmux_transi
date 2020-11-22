@@ -2,7 +2,7 @@
 # tmuxで文字列をコピーした時にpane2で翻訳を実行する
 # `tmux new \; source-file ./tmux_transi`
 
-rename-session transi
+rename-window transi
 
 # pane2でtransi.shを実行
 split-window -v
