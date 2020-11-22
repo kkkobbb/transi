@@ -1,12 +1,15 @@
 # 翻訳用ペイン追加版tmux
 # tmuxで文字列をコピーした時にpane2で翻訳を実行する
-# `tmux new \; source-file ./tmux_transi`
+#
+# Usage:
+#   '~'にtransiを展開して以下を実行する
+#   tmux new \; source-file ~/transi/tmux_transi
 
 rename-window transi
 
 # pane2でtransi.shを実行
 split-window -v
-send-keys 'cd ~/work/transi/' C-m
+send-keys 'cd ~/transi/' C-m
 send-keys C-l
 send-keys './transi.sh' C-m
 

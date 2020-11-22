@@ -10,18 +10,18 @@
 #   基本
 #     実行すると"# input text:"とでるので英文(空行なしの複数行)を入力し、
 #     空行(改行のみの行)を入力すると日本語に翻訳した結果を表示する
-#     翻訳前の英文の改行は空白に置換し、複数の空白は1つにする
+#     翻訳前の英文の改行は空白に置換し、先頭末尾の空白を削除し、複数の空白は1つにする
 #   簡易実行
 #     行の最後に";;"があるとそれまでの入力を翻訳して結果を表示する
 #   キャッシュ
-#     実行した場所にtransi_cacheディレクトリがあればキャッシュが動作する
+#     実行した場所にtransi_cacheディレクトリを作成すればキャッシュが動作する
 #   終了
 #     Ctrl+c or Ctrl+d
 
 CACHE_DIR=./transi_cache
 
-PROMPT_INPUT="\n\e[36;1m# input text:\e[0m\n"
-PROMPT_SRC="\n\e[32m# src text:\e[0m"
+PROMPT_INPUT="\e[36;1m# input text:\e[0m"
+PROMPT_SRC="\e[32m# src text:\e[0m"
 PROMPT_TRANS="\e[35m# translate:\e[0m"
 
 REGEX_START_TRANS=";;$"
@@ -40,6 +40,10 @@ get_hash() {
 
 # キャッシュを保存する
 # 失敗した場合、非0を返す
+#
+# キャッシュファイルは以下の2行の組の繰り返し (ハッシュが衝突した場合、複数の組が記述される)
+#   原文(英語)
+#   翻訳結果
 save_cache() {
 	key="$1"
 	value="$2"
@@ -53,6 +57,7 @@ save_cache() {
 	cachefile="$CACHE_DIR/$texthash.txt"
 	echo "$key" >> $cachefile
 	echo "$value" >> $cachefile
+	return 0
 }
 
 # キャッシュがあればその内容を出力し、0を返す
@@ -93,7 +98,7 @@ load_cache() {
 	return 1
 }
 
-printf "$PROMPT_INPUT"
+printf "\n$PROMPT_INPUT\n"
 text=""
 while read LINE || [ -n "$LINE" ]; do
 	# 次のループの文字列も使用する場合、真
@@ -127,7 +132,7 @@ while read LINE || [ -n "$LINE" ]; do
 	fi
 
 	# 翻訳元表示
-	$detail_flag && printf "$PROMPT_SRC\n"
+	$detail_flag && printf "\n$PROMPT_SRC\n"
 	$detail_flag && echo $text | fmt -w $(tput cols)
 	$detail_flag && printf "$PROMPT_TRANS"
 
@@ -138,7 +143,7 @@ while read LINE || [ -n "$LINE" ]; do
 		cache_mark="\n"
 	else
 		result="$cache_data"
-		hash_head=$(get_hash "$text" | cut -c 1-2)
+		hash_head=$(get_hash "$text" | cut -c 1-8)
 		cache_mark=" (cache $hash_head)\n"
 	fi
 	printf "${cache_mark}$result\n"
@@ -148,6 +153,6 @@ while read LINE || [ -n "$LINE" ]; do
 		save_cache "$text" "$result"
 	fi
 
-	printf "$PROMPT_INPUT"
+	printf "\n$PROMPT_INPUT\n"
 	text=""
 done
