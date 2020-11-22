@@ -25,6 +25,7 @@ PROMPT_SRC="\e[32m# src text:\e[0m"
 PROMPT_TRANS="\e[35m# translate:\e[0m"
 
 REGEX_START_TRANS=";;$"
+RE_SP="[ \f\n\r\t]"
 
 
 # 引数の英語を日本語に翻訳して標準出力に出力する
@@ -118,7 +119,7 @@ while read LINE || [ -n "$LINE" ]; do
 	# 空行の場合、翻訳を開始する
 	if [ -n "$LINE" ]; then
 		# 改行なしで結合
-		text=$(echo "$text $LINE" | sed -e "s/^ *//" -e "s/ *$//")
+		text=$(echo "$text $LINE" | sed -e "s/^${RE_SP}*//" -e "s/${RE_SP}*$//" -e "s/${RE_SP}\+/ /g")
 	else
 		continue_text=false
 	fi
