@@ -10,9 +10,13 @@ send-keys 'cd ~/work/transi/' C-m
 send-keys C-l
 send-keys './transi.sh' C-m
 
-# pane1にフォーカスを戻す & サイズ調整
+select-pane -T transi_result
+
+# pane1にフォーカスを戻す & 各種設定
 select-pane -t 1
 resize-pane -y25
+select-pane -T transi_src
 
 # コピー時のフック設定
-set-hook pane-set-clipboard 'select-pane -t2 ; paste-buffer ; send-keys C-m C-m ; last-pane'
+# ペイン名がtransi_src、かつペイン数が2の場合のみ翻訳実行
+set-hook pane-set-clipboard 'if-shell -F "#{&&:#{==:#T,transi_src},#{==:#{window_panes},2}}" { select-pane -t2 ; paste-buffer ; send-keys C-m C-m ; last-pane }'
