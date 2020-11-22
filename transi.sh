@@ -24,7 +24,7 @@ PROMPT_INPUT="\e[36;1m# input text:\e[0m"
 PROMPT_SRC="\e[32m# src text:\e[0m"
 PROMPT_TRANS="\e[35m# translate:\e[0m"
 
-REGEX_START_TRANS=";;$"
+RE_START_TRANS=";;$"
 RE_SP="[ \f\n\r\t]"
 
 
@@ -107,8 +107,8 @@ while read LINE || [ -n "$LINE" ]; do
 	# 結果表示時に翻訳元も表示する場合、真
 	detail_flag=true
 
-	# REGEX_START_TRANSにマッチする場合、翻訳を実行する
-	l=$(echo $LINE | sed -n "s/$REGEX_START_TRANS//p")
+	# RE_START_TRANSにマッチする場合、翻訳を実行する
+	l=$(echo $LINE | sed -n "s/$RE_START_TRANS//p")
 	if [ -n "$l" ]; then
 		LINE=$l
 		continue_text=false
