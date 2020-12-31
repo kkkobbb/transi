@@ -25,4 +25,9 @@ select-pane -T transi_src
 
 # コピー時のフック設定
 # ペイン名がtransi_src、かつペイン数が2の場合のみ翻訳実行
-set-hook pane-set-clipboard 'if-shell -F "#{&&:#{==:#T,transi_src},#{==:#{window_panes},2}}" { select-pane -t2 ; paste-buffer ; send-keys C-m C-m ; last-pane }'
+set-hook pane-set-clipboard {
+	if-shell -F "#{&&:#{==:#T,transi_src},#{==:#{window_panes},2}}" {
+		paste-buffer -t2 ;
+		send-keys -t2 C-m C-m
+	}
+}
