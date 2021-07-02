@@ -134,7 +134,7 @@ while read LINE || [ -n "$LINE" ]; do
 
 	# 翻訳元表示
 	$detail_flag && printf "\n$PROMPT_SRC\n"
-	$detail_flag && echo $text | fmt -w $(tput cols)
+	$detail_flag && echo "$text" | fmt -w $(tput cols)
 	$detail_flag && printf "$PROMPT_TRANS"
 
 	# 翻訳結果表示
