@@ -25,7 +25,6 @@ PROMPT_SRC="\e[32m# src text:\e[0m"
 PROMPT_TRANS="\e[35m# translate:\e[0m"
 
 RE_START_TRANS=";;$"
-RE_SP="[ \f\n\r\t]"
 
 
 # 引数の英語を日本語に翻訳して標準出力に出力する
@@ -99,6 +98,12 @@ load_cache() {
 	return 1
 }
 
+# 先頭、末尾の空白文字を削除し、連続する空白文字を1つにする
+normalize_space() {
+	RE_SP="[ \f\n\r\t]"
+	sed -e "s/^${RE_SP}*//" -e "s/${RE_SP}*$//" -e "s/${RE_SP}\+/ /g"
+}
+
 printf "\n$PROMPT_INPUT\n"
 text=""
 while read LINE || [ -n "$LINE" ]; do
@@ -107,7 +112,7 @@ while read LINE || [ -n "$LINE" ]; do
 	# 結果表示時に翻訳元も表示する場合、真
 	detail_flag=true
 
-	# RE_START_TRANSにマッチする場合、翻訳を実行する
+	# $RE_START_TRANSにマッチする場合、翻訳を実行する
 	l=$(echo $LINE | sed -n "s/$RE_START_TRANS//p")
 	if [ -n "$l" ]; then
 		LINE=$l
@@ -119,7 +124,7 @@ while read LINE || [ -n "$LINE" ]; do
 	# 空行の場合、翻訳を開始する
 	if [ -n "$LINE" ]; then
 		# 改行なしで結合
-		text=$(echo "$text $LINE" | sed -e "s/^${RE_SP}*//" -e "s/${RE_SP}*$//" -e "s/${RE_SP}\+/ /g")
+		text=$(echo "$text $LINE" | normalize_space)
 	else
 		continue_text=false
 	fi
@@ -140,9 +145,11 @@ while read LINE || [ -n "$LINE" ]; do
 	# 翻訳結果表示
 	cache_data=$(load_cache "$text")
 	if [ $? -ne 0 ]; then
+		# 翻訳実行
 		result=$(translate_en_ja "$text")
 		cache_mark="\n"
 	else
+		# キャッシュ使用
 		result="$cache_data"
 		hash_head=$(get_hash "$text" | cut -c 1-8)
 		cache_mark=" (cache $hash_head)\n"
