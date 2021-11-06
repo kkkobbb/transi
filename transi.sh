@@ -20,9 +20,14 @@
 
 CACHE_DIR=./transi_cache
 
-PROMPT_INPUT="\e[36;1m# input text:\e[0m"
-PROMPT_SRC="\e[32m# src text:\e[0m"
-PROMPT_TRANS="\e[35m# translate:\e[0m"
+#PROMPT_INPUT="\e[36;1m# input text\e[0m\n"
+#PROMPT_SRC="\e[32m# src text\e[0m\n"
+#CACHE_MARK_TMPL="(cache %s) "
+PROMPT_TRANS="\e[35m# %stranslate\e[0m\n"
+PROMPT_INPUT="\e[36;1m$\e[0m "
+PROMPT_SRC=""
+CACHE_MARK_TMPL="(%s) "
+#PROMPT_TRANS="\e[35m# %strns:\e[0m "
 
 RE_START_TRANS=";;$"
 
@@ -104,7 +109,7 @@ normalize_space() {
 	sed -e "s/^${RE_SP}*//" -e "s/${RE_SP}*$//" -e "s/${RE_SP}\+/ /g"
 }
 
-printf "\n$PROMPT_INPUT\n"
+printf "\n$PROMPT_INPUT"
 text=""
 while read LINE || [ -n "$LINE" ]; do
 	# 次のループの文字列も使用する場合、真
@@ -138,29 +143,28 @@ while read LINE || [ -n "$LINE" ]; do
 	fi
 
 	# 翻訳元表示
-	$detail_flag && printf "\n$PROMPT_SRC\n"
-	$detail_flag && echo "$text" | fmt -w $(tput cols)
-	$detail_flag && printf "$PROMPT_TRANS"
+	$detail_flag && printf "$PROMPT_SRC$text" | fmt -s -w $(tput cols)
 
 	# 翻訳結果表示
 	cache_data=$(load_cache "$text")
 	if [ $? -ne 0 ]; then
 		# 翻訳実行
 		result=$(translate_en_ja "$text")
-		cache_mark="\n"
+		cache_mark=""
 	else
 		# キャッシュ使用
 		result="$cache_data"
 		hash_head=$(get_hash "$text" | cut -c 1-8)
-		cache_mark=" (cache $hash_head)\n"
+		cache_mark=$(printf "$CACHE_MARK_TMPL" $hash_head)
 	fi
-	printf "${cache_mark}$result\n"
+	$detail_flag && printf "$PROMPT_TRANS" "$cache_mark"
+	printf "$result"
 
 	# 翻訳結果がテキストと同じ場合、翻訳失敗とみなしてキャッシュしない
 	if [ -z "$cache_data" -a "$text" != "$result" ]; then
 		save_cache "$text" "$result"
 	fi
 
-	printf "\n$PROMPT_INPUT\n"
+	printf "\n$PROMPT_INPUT"
 	text=""
 done
