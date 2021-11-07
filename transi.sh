@@ -32,10 +32,33 @@ CACHE_MARK_TMPL="(%s) "
 RE_START_TRANS=";;$"
 
 
-# 引数の英語を日本語に翻訳して標準出力に出力する
+# 引数の文章を翻訳して標準出力に出力する
+# 文章の翻訳1パターンのみ
+translate_sentences() {
+	lang="$1"
+	text="$2"
+	trans -no-warn -b "$lang" "$text"
+}
+
+# 引数の単語を翻訳して標準出力に出力する
+# 単語の意味を羅列
+translate_word() {
+	lang="$1"
+	text="$2"
+	trans -no-warn -no-ansi "$lang" "$text"
+}
+
+# 英語を日本語に翻訳して標準出力に出力する
+# １単語のみか、文章かで内容を変える
 translate_en_ja() {
+	lang="en:ja"
 	text="$1"
-	trans -no-warn -b en:ja "$text"
+
+	if echo "$text" | grep -q " "; then
+		translate_sentences "$lang" "$text"
+	else
+		translate_word "$lang" "$text"
+	fi
 }
 
 get_hash() {
@@ -49,6 +72,9 @@ get_hash() {
 # キャッシュファイルは以下の2行の組の繰り返し (ハッシュが衝突した場合、複数の組が記述される)
 #   原文(英語)
 #   翻訳結果
+#
+# 原文は改行なしの想定
+# 翻訳結果は改行あり(単語の翻訳結果のみ)の想定
 save_cache() {
 	key="$1"
 	value="$2"
@@ -61,6 +87,8 @@ save_cache() {
 	texthash=$(get_hash "$key")
 	cachefile="$CACHE_DIR/$texthash.txt"
 	echo "$key" >> $cachefile
+	# 改行は"\\n"の3文字に置き換えて保存する
+	value=$(echo "$value" | sed -z 's/\n/\\\\n/g')
 	echo "$value" >> $cachefile
 	return 0
 }
