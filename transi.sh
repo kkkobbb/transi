@@ -45,7 +45,7 @@ translate_sentences() {
 translate_word() {
 	lang="$1"
 	text="$2"
-	trans -no-warn -no-ansi "$lang" "$text"
+	trans -no-warn -no-ansi -show-languages=n -show-original=n -show-prompt-message=n -show-translation=n "$lang" "$text"
 }
 
 # 英語を日本語に翻訳して標準出力に出力する
