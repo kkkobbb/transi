@@ -63,7 +63,7 @@ translate_en_ja() {
 
 get_hash() {
 	key="$1"
-	printf "$key" | sha256sum | awk '{print $1}'
+	echo "$key" | sha256sum | awk '{print $1}'
 }
 
 # キャッシュを保存する
@@ -173,7 +173,7 @@ while read LINE || [ -n "$LINE" ]; do
 	fi
 
 	# 翻訳元表示
-	$detail_flag && printf "$PROMPT_SRC$text" | fmt -s -w $(tput cols)
+	$detail_flag && printf "$PROMPT_SRC%s" "$text" | fmt -s -w $(tput cols)
 
 	# 翻訳結果表示
 	cache_data=$(load_cache "$text")
