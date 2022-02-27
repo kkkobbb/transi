@@ -15,10 +15,23 @@
 #     行の最後に";;"があるとそれまでの入力を翻訳して結果を表示する
 #   キャッシュ
 #     実行した場所にtransi_cacheディレクトリを作成すればキャッシュが動作する
+#     transi_cache/statディレクトリを作成すればキャッシュの追加情報を保存する
+#       追加情報の項目は以下
+#       * count: 参照した回数
+#       * last modified: 最後に参照した日時
 #   終了
 #     Ctrl+c or Ctrl+d
 
-CACHE_DIR=./transi_cache
+CACHE_DIR="./transi_cache"
+CACHE_STAT_DIR="$CACHE_DIR/stat"
+
+# 追加情報の項目
+# 翻訳回数
+STAT_COUNT="count,"
+# 最終更新日時
+STAT_LAST_MODIFIED="last modified,"
+# 終了記号
+STAT_END=","
 
 #PROMPT_INPUT="\e[36;1m# input text\e[0m\n"
 #PROMPT_SRC="\e[32m# src text\e[0m\n"
@@ -84,12 +97,13 @@ save_cache() {
 		return 1
 	fi
 
-	texthash=$(get_hash "$key")
-	cachefile="$CACHE_DIR/$texthash.txt"
+	keyhash=$(get_hash "$key")
+	cachefile="$CACHE_DIR/$keyhash.txt"
 	echo "$key" >> $cachefile
 	# 改行は"\\n"の3文字に置き換えて保存する
 	value=$(echo "$value" | sed -z 's/\n/\\\\n/g')
 	echo "$value" >> $cachefile
+
 	return 0
 }
 
@@ -104,23 +118,26 @@ load_cache() {
 		return 1
 	fi
 
-	texthash=$(get_hash "$key")
-	cachefile="$CACHE_DIR/${texthash}.txt"
+	keyhash=$(get_hash "$key")
+
+	update_cache_stat "$key" "$keyhash"
+
+	cachefile="$CACHE_DIR/${keyhash}.txt"
 	if [ -f "$cachefile" ]; then
-		same_text=false
+		same_key=false
 		skip_f=false
 		while read LINE || [ -n "$LINE" ]; do
 			if $skip_f; then
 				skip_f=false
 				continue
 			fi
-			if $same_text; then
+			if $same_key; then
 				printf "$LINE"
 				return 0
 			fi
 			if [ "$LINE" = "$key" ]; then
 				# 指定されたキーの場合、次の行を返す
-				same_text=true
+				same_key=true
 				skip_f=false
 			else
 				# 指定されたキーでない場合、次のキーの行まで飛ぶ
@@ -131,6 +148,62 @@ load_cache() {
 
 	echo ""
 	return 1
+}
+
+# keyの行以降、STAT_ENDまでの間にあるitemの行を出力する
+# ない場合、何も出力しない
+read_cache_stat_item() {
+	statfile=$1
+	key=$2
+	item=$3
+	gawk 'BEGIN {flag=0} $0 == "'"$key"'" {flag=1} /^'"$item"'/ {if (flag==1) {print $0; exit}}' $statfile
+}
+
+# keyの行以降、STAT_ENDまでの間にあるitemの行を更新する
+# itemがない場合、keyの直下に追加する
+update_cache_stat_item() {
+	statfile=$1
+	key=$2
+	item=$3
+	value=$4
+
+	# keyの行以降、STAT_ENDの行までの間にitemがあれば変更する
+	# 変更した場合0、しなかった場合1を返す
+	new_stat=$(gawk 'BEGIN {flag=0;exists=1} /^'"$item"'/ {if (flag==1) {exists=0; print "'"$item$value"'"; next}} $0 == "'"$key"'" {flag=1} /^,$/ {flag=0} {print $0} END {exit exists}' $statfile)
+
+	# itemが見つけられなかった場合、keyの後にitemとvalueの行を追加する
+	if [ "$?" == "1" ]; then
+		new_stat=$(gawk '$0 == "'"$key"'" {print $0; print "'"$item$value"'"; next} {print $0}' $statfile)
+	fi
+
+	echo "$new_stat" > $statfile
+}
+
+# キャッシュ追加情報更新
+# 無い場合、新規作成
+update_cache_stat() {
+	key="$1"
+	keyhash="$2"
+
+	# 追加情報用ディレクトリがない場合、何もしない
+	if [ ! -d $CACHE_STAT_DIR ]; then
+		return 1
+	fi
+
+	statfile="$CACHE_STAT_DIR/${keyhash}.txt"
+
+	# ファイルがない(またはkeyの行がない)場合、keyの行を末尾にもつファイルを生成(更新)する
+	grep -qF "$key" $statfile > /dev/null 2> /dev/null || printf "$key\n,\n" >> $statfile
+
+	# count
+	value_count=$(read_cache_stat_item "$statfile" "$key" "$STAT_COUNT" | sed "s/$STAT_COUNT//")
+	test -z "$value_count" && value_count="0"
+	value_count=$(expr $value_count + 1)
+	update_cache_stat_item "$statfile" "$key" "$STAT_COUNT" "$value_count"
+
+	# last modified
+	value_last_modified=$(date "+%Y/%m/%d %H:%M:%S")
+	update_cache_stat_item "$statfile" "$key" "$STAT_LAST_MODIFIED" "$value_last_modified"
 }
 
 # 先頭、末尾の空白文字を削除し、連続する空白文字を1つにする
