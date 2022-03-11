@@ -1,4 +1,4 @@
-# 翻訳用ペイン追加版tmux
+# 翻訳用pane追加版tmux
 # tmuxで文字列をコピーした時にpane2で翻訳を実行する
 #
 # Usage:
@@ -24,10 +24,12 @@ resize-pane -y25
 select-pane -T transi_src
 
 # コピー時のフック設定
-# ペイン名がtransi_src、かつペイン数が2の場合のみ翻訳実行
+# 現在のpaneのタイトルがtransi_src、かつpane2のタイトルがtransi_resultの場合のみコピー内容をpane2に送る
 set-hook pane-set-clipboard {
-	if-shell -F "#{&&:#{==:#T,transi_src},#{==:#{window_panes},2}}" {
-		paste-buffer -t2 ;
-		send-keys -t2 C-m C-m
+	if-shell -F "#{==:#T,transi_src}" {
+		if-shell -t2 -F "#{==:#T,transi_result}" {
+			paste-buffer -t2 ;
+			send-keys -t2 C-m C-m
+		}
 	}
 }
