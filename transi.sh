@@ -156,7 +156,7 @@ read_cache_stat_item() {
 	statfile=$1
 	key=$2
 	item=$3
-	gawk 'BEGIN {flag=0} $0 == "'"$key"'" {flag=1} /^'"$item"'/ {if (flag==1) {print $0; exit}}' $statfile
+	gawk -v key="$key" 'BEGIN {flag=0} $0 == $key {flag=1} /^'"$item"'/ {if (flag==1) {print $0; exit}}' $statfile
 }
 
 # keyの行以降、STAT_ENDまでの間にあるitemの行を更新する
@@ -169,11 +169,11 @@ update_cache_stat_item() {
 
 	# keyの行以降、STAT_ENDの行までの間にitemがあれば変更する
 	# 変更した場合0、しなかった場合1を返す
-	new_stat=$(gawk 'BEGIN {flag=0;exists=1} /^'"$item"'/ {if (flag==1) {exists=0; print "'"$item$value"'"; next}} $0 == "'"$key"'" {flag=1} /^,$/ {flag=0} {print $0} END {exit exists}' $statfile)
+	new_stat=$(gawk -v key="$key" -v item="$item" -v value="$value" 'BEGIN {flag=0;exists=1} match($0, "^" item) {if (flag==1) {exists=0; print item value; next}} $0 == $key {flag=1} /^,$/ {flag=0} {print $0} END {exit exists}' $statfile)
 
 	# itemが見つけられなかった場合、keyの後にitemとvalueの行を追加する
 	if [ "$?" == "1" ]; then
-		new_stat=$(gawk '$0 == "'"$key"'" {print $0; print "'"$item$value"'"; next} {print $0}' $statfile)
+		new_stat=$(gawk -v key="$key" -v item="$item" -v value="$value" '$0 == key {print $0; print item value; next} {print $0}' $statfile)
 	fi
 
 	echo "$new_stat" > $statfile
