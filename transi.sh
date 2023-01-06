@@ -13,6 +13,8 @@
 #     翻訳前の英文の改行は空白に置換し、先頭末尾の空白を削除し、複数の空白は1つにする
 #   簡易実行
 #     行の最後に";;"があるとそれまでの入力を翻訳して結果を表示する
+#   一部英文変更
+#     一部の英文が無視される場合があるため、英文を修正することがある
 #   キャッシュ
 #     実行した場所にtransi_cacheディレクトリを作成すればキャッシュが動作する
 #     transi_cache/statディレクトリを作成すればキャッシュの追加情報を保存する
@@ -214,13 +216,20 @@ update_cache_stat() {
 	update_cache_stat_item "$statfile" "$key" "$STAT_LAST_MODIFIED" "$value_last_modified"
 }
 
-# 先頭、末尾の空白文字を削除し、連続する空白文字を1つにする
+# 不要な空白の削除
 normalize_space() {
+	# 先頭、末尾の空白文字を削除し、連続する空白文字を1つにする
 	RE_SP="[ \f\n\r\t]"
 	sed -e "s/^${RE_SP}*//" -e "s/${RE_SP}*$//" -e "s/${RE_SP}\+/ /g"
 }
 
-printf "\n$PROMPT_INPUT"
+# 翻訳が途中で終わってしまうのを回避するための修正
+fix_text() {
+	# ,の後に""の文が続くと""内が無視される場合があるで修正
+	sed -e 's/, "/; "/g'
+}
+
+printf "$PROMPT_INPUT"
 text=""
 while read LINE || [ -n "$LINE" ]; do
 	# 次のループの文字列も使用する場合、真
@@ -240,7 +249,7 @@ while read LINE || [ -n "$LINE" ]; do
 	# 空行の場合、翻訳を開始する
 	if [ -n "$LINE" ]; then
 		# 改行なしで結合
-		text=$(echo "$text $LINE" | normalize_space)
+		text=$(echo "$text $LINE" | normalize_space | fix_text)
 	else
 		continue_text=false
 	fi
