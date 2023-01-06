@@ -20,6 +20,7 @@
 #     transi_cache/statディレクトリを作成すればキャッシュの追加情報を保存する
 #       追加情報の項目は以下
 #       * count: 参照した回数
+#       * created: 最初に参照した日時
 #       * last modified: 最後に参照した日時
 #   終了
 #     Ctrl+c or Ctrl+d
@@ -30,6 +31,8 @@ CACHE_STAT_DIR="$CACHE_DIR/stat"
 # 追加情報の項目
 # 翻訳回数
 STAT_COUNT="count,"
+# 初回登録日時
+STAT_CREATED="created,"
 # 最終更新日時
 STAT_LAST_MODIFIED="last modified,"
 # 終了記号
@@ -211,8 +214,19 @@ update_cache_stat() {
 	value_count=$(expr $value_count + 1)
 	update_cache_stat_item "$statfile" "$key" "$STAT_COUNT" "$value_count"
 
+	date_now=$(date "+%Y/%m/%d %H:%M:%S")
+
+	# created
+	if [ $value_count = 1 ]; then
+		value_created=$date_now
+	else
+		value_created=$(read_cache_stat_item "$statfile" "$key" "$STAT_CREATED" |\
+			sed "s/$STAT_CREATED//")
+	fi
+	update_cache_stat_item "$statfile" "$key" "$STAT_CREATED" "$value_created"
+
 	# last modified
-	value_last_modified=$(date "+%Y/%m/%d %H:%M:%S")
+	value_last_modified=$date_now
 	update_cache_stat_item "$statfile" "$key" "$STAT_LAST_MODIFIED" "$value_last_modified"
 }
 
